@@ -1,0 +1,43 @@
+---
+- name: System Updates and Enable Automatic Updates
+  hosts: all
+  become: yes
+  vars:
+    unattended_upgrades_package: unattended-upgrades
+
+  tasks:
+    - name: Update package list and upgrade all packages for Debian-based systems
+      apt:
+        update_cache: yes
+        upgrade: dist
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Update package list and upgrade all packages for RedHat-based systems
+      yum:
+        name: '*'
+        state: latest
+      when: ansible_facts['os_family'] == "RedHat"
+
+    - name: Install unattended-upgrades for Debian-based systems
+      apt:
+        name: "{{ unattended_upgrades_package }}"
+        state: present
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Configure unattended-upgrades for Debian-based systems
+      command: "dpkg-reconfigure -plow {{ unattended_upgrades_package }}"
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Ensure yum-cron is installed for RedHat-based systems
+      yum:
+        name: yum-cron
+        state: present
+      when: ansible_facts['os_family'] == "RedHat"
+
+    - name: Enable and start yum-cron for automatic updates on RedHat-based systems
+      systemd:
+        name: yum-cron
+        enabled: yes
+        state: started
+      when: ansible_facts['os_family'] == "RedHat"
+
